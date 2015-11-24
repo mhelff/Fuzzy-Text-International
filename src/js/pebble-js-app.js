@@ -18,7 +18,9 @@ var langs = {
   fr:    5,
   no:    6,
   sv:    7,
-  sq:    8
+  sq:    8,
+  ba:    9,
+  ro:    10
 };
 
 function readyCallback(event) {

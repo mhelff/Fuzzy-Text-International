@@ -6,7 +6,7 @@
 
 #define NUM_LINES 4
 #define LINE_LENGTH 7
-#define BUFFER_SIZE (LINE_LENGTH + 2)
+#define BUFFER_SIZE (LINE_LENGTH + 10)
 #define ROW_HEIGHT 37
 #define TOP_MARGIN 10
 
@@ -34,7 +34,7 @@ static uint8_t sync_buffer[64];
 
 static int text_align = TEXT_ALIGN_CENTER;
 static bool invert = false;
-static Language lang = EN_US;
+static Language lang = BA;
 
 static Window *window;
 
@@ -114,7 +114,7 @@ static void updateLayerText(TextLayer* layer, char* text)
 	strcpy((char*)layerText, text);
 	// To mark layer dirty
 	text_layer_set_text(layer, layerText);
-    //layer_mark_dirty(&layer->layer);
+  //layer_mark_dirty(&layer->layer);
 }
 
 // Update line
@@ -159,21 +159,38 @@ static GTextAlignment lookup_text_alignment(int align_key)
 }
 
 // Configure bold line of text
-static void configureBoldLayer(TextLayer *textlayer)
+static void configureBoldLayer(TextLayer *textlayer, char* text)
 {
 	text_layer_set_font(textlayer, fonts_get_system_font(FONT_KEY_BITHAM_42_BOLD));
 	text_layer_set_text_color(textlayer, GColorWhite);
 	text_layer_set_background_color(textlayer, GColorClear);
 	text_layer_set_text_alignment(textlayer, lookup_text_alignment(text_align));
+  text_layer_set_overflow_mode(textlayer, GTextOverflowModeTrailingEllipsis);
+
+  GSize gz = graphics_text_layout_get_content_size(text, fonts_get_system_font(FONT_KEY_BITHAM_42_BOLD), GRect(144, 0, 200, 50), GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft);
+  if(gz.w > 143) {
+    gz = graphics_text_layout_get_content_size(text, fonts_get_system_font(FONT_KEY_BITHAM_30_BLACK), GRect(144, 0, 200, 50), GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft);
+    if(gz.w > 143) {
+      text_layer_set_font(textlayer, fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD));  
+    } else {
+      text_layer_set_font(textlayer, fonts_get_system_font(FONT_KEY_BITHAM_30_BLACK));
+    }
+  }
 }
 
 // Configure light line of text
-static void configureLightLayer(TextLayer *textlayer)
+static void configureLightLayer(TextLayer *textlayer, char* text)
 {
 	text_layer_set_font(textlayer, fonts_get_system_font(FONT_KEY_BITHAM_42_LIGHT));
 	text_layer_set_text_color(textlayer, GColorWhite);
 	text_layer_set_background_color(textlayer, GColorClear);
 	text_layer_set_text_alignment(textlayer, lookup_text_alignment(text_align));
+  text_layer_set_overflow_mode(textlayer, GTextOverflowModeTrailingEllipsis);
+  
+  GSize gz = graphics_text_layout_get_content_size(text, fonts_get_system_font(FONT_KEY_BITHAM_42_LIGHT), GRect(144, 0, 200, 50), GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft);
+  if(gz.w > 143) {
+    text_layer_set_font(textlayer, fonts_get_system_font(FONT_KEY_GOTHIC_28));
+  }
 }
 
 // Configure the layers for the given text
@@ -187,11 +204,11 @@ static int configureLayersForText(char text[NUM_LINES][BUFFER_SIZE], char format
 		if (strlen(text[i]) > 0) {
 			if (format[i] == 'b')
 			{
-				configureBoldLayer(lines[i].nextLayer);
+				configureBoldLayer(lines[i].nextLayer, text[i]);
 			}
 			else
 			{
-				configureLightLayer(lines[i].nextLayer);
+				configureLightLayer(lines[i].nextLayer, text[i]);
 			}
 		}
 		else
@@ -482,8 +499,8 @@ static void init_line(Line* line)
 	line->nextLayer = text_layer_create(GRect(144, 0, 144, 50));
 
 	// Configure a style
-	configureLightLayer(line->currentLayer);
-	configureLightLayer(line->nextLayer);
+	configureLightLayer(line->currentLayer, "");
+	configureLightLayer(line->nextLayer, "");
 
 	// Set the text buffers
 	line->lineStr1[0] = '\0';

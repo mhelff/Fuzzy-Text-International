@@ -8,6 +8,8 @@
 #include "strings-no.h"
 #include "strings-sv.h"
 #include "strings-sq.h"
+#include "strings-ba.h"
+#include "strings-ro.h"
 #include "string.h"
 
 size_t min(const size_t a, const size_t b) {
@@ -101,6 +103,12 @@ const char* get_hour(Language lang, int index) {
     case SQ:
       return HOURS_SQ[index];
       break;
+    case BA:
+      return HOURS_BA[index];
+      break;
+    case RO:
+      return HOURS_RO[index];
+      break;
     default:
       return HOURS_EN_US[index];
   }
@@ -131,6 +139,12 @@ const char* get_rel(Language lang, int index) {
       break;
     case SQ:
       return RELS_SQ[index];
+      break;
+    case BA:
+      return RELS_BA[index];
+      break;
+    case RO:
+      return RELS_RO[index];
       break;
     default:
       return RELS_EN_US[index];
@@ -177,7 +191,7 @@ const char* get_day(Language lang, int index) {
 const char* get_month(Language lang, int index) {
   switch (lang) {
     default:
-      return MONTHS_EN_US[index];
+      return MONTHS_EN_US[index-1];
   }
 }
 
