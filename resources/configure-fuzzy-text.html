@@ -163,19 +163,6 @@
 	<script>
 		var LATEST = "1.2.1";
 
-		function getQueryParam(variable, default_) {
-    			var query = location.search.substring(1);
-    			var vars = query.split('&');
-    			for (var i = 0; i < vars.length; i++) {
-        			var pair = vars[i].split('=');
-        			if (pair[0] == variable)
-            				return decodeURIComponent(pair[1]);
-    			}
-    			return default_ || false;
-		}
-
-		var return_to = getQueryParam('return_to', 'pebblejs://close#');
-
 		function saveOptions() {
 			var params = {};
 			$('#config').serializeArray().forEach(function(pair) {
@@ -192,7 +179,7 @@
 
 		function applyOptions() {
 			var $form	= $('#config');
-			var opts	= JSON.parse(getParam('options'));
+			var opts	= JSON.parse(getParam('options', ''));
 			if (opts && opts.invert) {
 				$form.find('[name="invert"]').prop('checked', true);
 			}
@@ -208,9 +195,9 @@
 			}
 		}
 
-		function getParam(key) {
+		function getParam(key,  default_) {
 			var params = window.location.hash;
-			var val;
+			var val = default_;
 			params.replace(/(?:^|[#&])([a-z]+)=([^&]+)/ig, function(_, k, v) {
 				if (key === k) {
 					val = decodeURIComponent(v);
@@ -227,11 +214,11 @@
 		}
 
 		$("#b-submit").click(function() {
-			var location = return_to + encodeURIComponent(JSON.stringify(saveOptions()));
+			var location = getParam('return_to', 'pebblejs://close#') + encodeURIComponent(JSON.stringify(saveOptions()));
 			document.location = location;
 		});
 
-		var version = getParam('v');
+		var version = getParam('v', LATEST);
 		if (!version || (parseVersion(version) < parseVersion(LATEST))) {
 			$('#update-available').removeClass('hidden');
 		}
