@@ -215,6 +215,7 @@
 
 		$("#b-submit").click(function() {
 			var location = getParam('return_to', 'pebblejs://close#') + encodeURIComponent(JSON.stringify(saveOptions()));
+			alert(location);
 			document.location = location;
 		});
 
