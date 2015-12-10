@@ -196,7 +196,7 @@
 		}
 
 		function getParam(key,  default_) {
-			var params = window.location;
+			var params = window.location.search;
 			var val = default_;
 			params.replace(/(?:^|[#&])([a-z]+)=([^&]+)/ig, function(_, k, v) {
 				if (key === k) {
