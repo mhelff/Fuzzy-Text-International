@@ -2,7 +2,7 @@
 
 const char* const HOURS_DE[] = {
   // AM hours
-  "zwööölf",
+  "zwölf",
   "eins",
   "zwei",
   "drei",
@@ -13,7 +13,7 @@ const char* const HOURS_DE[] = {
   "acht",
   "neun",
   "zehn",
-  "öhlf11!",
+  "elf",
 
   // PM hours
   "zwölf",

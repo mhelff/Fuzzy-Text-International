@@ -2,7 +2,7 @@
 
 #include "num2words.h"
 
-#define DEBUG 0
+#define DEBUG 1
 
 #define NUM_LINES 4
 #define LINE_LENGTH 7
@@ -36,6 +36,9 @@ static int text_align = TEXT_ALIGN_CENTER;
 static bool invert = false;
 static Language lang = BA;
 
+static GColor backgroundColor;
+static GColor textColor;
+
 static Window *window;
 
 typedef struct {
@@ -48,7 +51,6 @@ typedef struct {
 } Line;
 
 static Line lines[NUM_LINES];
-static InverterLayer *inverter_layer;
 
 static struct tm *t;
 
@@ -81,31 +83,28 @@ static void makeAnimationsForLayer(Line *line, int delay)
 	{
 		 property_animation_destroy(line->animation2);
 	}
-
 	// Configure animation for current layer to move out
 	GRect rect = layer_get_frame((Layer *)current);
 	rect.origin.x =  -144;
 	line->animation1 = property_animation_create_layer_frame((Layer *)current, NULL, &rect);
-	animation_set_duration(&line->animation1->animation, ANIMATION_DURATION);
-	animation_set_delay(&line->animation1->animation, delay);
-	animation_set_curve(&line->animation1->animation, AnimationCurveEaseIn); // Accelerate
-
+	animation_set_duration((Animation*)(line->animation1), ANIMATION_DURATION);
+	animation_set_delay((Animation*)(line->animation1), delay);
+	animation_set_curve((Animation*)(line->animation1), AnimationCurveEaseIn); // Accelerate
 	// Configure animation for current layer to move in
 	GRect rect2 = layer_get_frame((Layer *)next);
 	rect2.origin.x = 0;
 	line->animation2 = property_animation_create_layer_frame((Layer *)next, NULL, &rect2);
-	animation_set_duration(&line->animation2->animation, ANIMATION_DURATION);
-	animation_set_delay(&line->animation2->animation, delay + ANIMATION_OUT_IN_DELAY);
-	animation_set_curve(&line->animation2->animation, AnimationCurveEaseOut); // Deaccelerate
-
+	animation_set_duration((Animation*)(line->animation2), ANIMATION_DURATION);
+	animation_set_delay((Animation*)(line->animation2), delay + ANIMATION_OUT_IN_DELAY);
+  animation_set_curve((Animation*)(line->animation2), AnimationCurveEaseOut); // Deaccelerate
 	// Set a handler to rearrange layers after animation is finished
-	animation_set_handlers(&line->animation2->animation, (AnimationHandlers) {
+	animation_set_handlers((Animation*)(line->animation2), (AnimationHandlers) {
 		.stopped = (AnimationStoppedHandler)animationStoppedHandler
 	}, current);
 
 	// Start the animations
-	animation_schedule(&line->animation1->animation);
-	animation_schedule(&line->animation2->animation);	
+	animation_schedule((Animation*)(line->animation1));
+	animation_schedule((Animation*)(line->animation2));
 }
 
 static void updateLayerText(TextLayer* layer, char* text)
@@ -122,7 +121,6 @@ static void updateLineTo(Line *line, char *value, int delay)
 {
 	updateLayerText(line->nextLayer, value);
 	makeAnimationsForLayer(line, delay);
-
 	// Swap current/next layers
 	TextLayer *tmp = line->nextLayer;
 	line->nextLayer = line->currentLayer;
@@ -162,7 +160,7 @@ static GTextAlignment lookup_text_alignment(int align_key)
 static void configureBoldLayer(TextLayer *textlayer, char* text)
 {
 	text_layer_set_font(textlayer, fonts_get_system_font(FONT_KEY_BITHAM_42_BOLD));
-	text_layer_set_text_color(textlayer, GColorWhite);
+	text_layer_set_text_color(textlayer, textColor);
 	text_layer_set_background_color(textlayer, GColorClear);
 	text_layer_set_text_alignment(textlayer, lookup_text_alignment(text_align));
   text_layer_set_overflow_mode(textlayer, GTextOverflowModeTrailingEllipsis);
@@ -181,8 +179,8 @@ static void configureBoldLayer(TextLayer *textlayer, char* text)
 // Configure light line of text
 static void configureLightLayer(TextLayer *textlayer, char* text)
 {
-	text_layer_set_font(textlayer, fonts_get_system_font(FONT_KEY_BITHAM_42_LIGHT));
-	text_layer_set_text_color(textlayer, GColorWhite);
+	text_layer_set_font(textlayer, fonts_get_system_font(FONT_KEY_BITHAM_42_BOLD));
+	text_layer_set_text_color(textlayer, textColor);
 	text_layer_set_background_color(textlayer, GColorClear);
 	text_layer_set_text_alignment(textlayer, lookup_text_alignment(text_align));
   text_layer_set_overflow_mode(textlayer, GTextOverflowModeTrailingEllipsis);
@@ -405,9 +403,9 @@ static void handle_minute_tick(struct tm *tick_time, TimeUnits units_changed)
  */
 #if DEBUG
 
-static void up_single_click_handler(ClickRecognizerRef recognizer, Window *window) {
+static void up_single_click_handler(ClickRecognizerRef recognizer, void *context) {
 	(void)recognizer;
-	(void)window;
+	(void)context;
 	
 	t->tm_min += 5;
 	if (t->tm_min >= 60) {
@@ -422,9 +420,9 @@ static void up_single_click_handler(ClickRecognizerRef recognizer, Window *windo
 }
 
 
-static void down_single_click_handler(ClickRecognizerRef recognizer, Window *window) {
+static void down_single_click_handler(ClickRecognizerRef recognizer, void *context) {
 	(void)recognizer;
-	(void)window;
+	(void)context;
 	
 	t->tm_min -= 5;
 	if (t->tm_min < 0) {
@@ -438,14 +436,13 @@ static void down_single_click_handler(ClickRecognizerRef recognizer, Window *win
 	display_time(t);
 }
 
-static void click_config_provider(ClickConfig **config, Window *window) {
-  (void)window;
+static void click_config_provider(void *context) {
 
-  config[BUTTON_ID_UP]->click.handler = (ClickHandler) up_single_click_handler;
-  config[BUTTON_ID_UP]->click.repeat_interval_ms = 100;
+  window_set_click_context(BUTTON_ID_UP, context);
+  window_single_repeating_click_subscribe(BUTTON_ID_UP, 100, up_single_click_handler);
 
-  config[BUTTON_ID_DOWN]->click.handler = (ClickHandler) down_single_click_handler;
-  config[BUTTON_ID_DOWN]->click.repeat_interval_ms = 100;
+  window_set_click_context(BUTTON_ID_DOWN, context);
+  window_single_repeating_click_subscribe(BUTTON_ID_DOWN, 100, down_single_click_handler);
 }
 
 #endif
@@ -476,9 +473,21 @@ static void sync_tuple_changed_callback(const uint32_t key, const Tuple* new_tup
 			invert = new_tuple->value->uint8 == 1;
 			persist_write_bool(INVERT_KEY, invert);
 			APP_LOG(APP_LOG_LEVEL_DEBUG, "Set invert: %u", invert ? 1 : 0);
-
-			layer_set_hidden(inverter_layer_get_layer(inverter_layer), !invert);
-			layer_mark_dirty(inverter_layer_get_layer(inverter_layer));
+      if(invert) {
+        textColor = GColorBlack;
+        backgroundColor = GColorWhite;
+      } else {
+        textColor = GColorWhite;
+        backgroundColor = GColorBlack;
+      }
+      window_set_background_color(window, backgroundColor);
+			for (int i = 0; i < NUM_LINES; i++)
+			{
+        text_layer_set_text_color(lines[i].currentLayer, textColor);
+        text_layer_set_text_color(lines[i].nextLayer, textColor);
+				layer_mark_dirty(text_layer_get_layer(lines[i].currentLayer));
+				layer_mark_dirty(text_layer_get_layer(lines[i].nextLayer));
+			}
 			break;
 		case LANGUAGE_KEY:
 			lang = (Language) new_tuple->value->uint8;
@@ -533,10 +542,6 @@ static void window_load(Window *window)
 		layer_add_child(window_layer, (Layer *)lines[i].nextLayer);
 	}
 
-	inverter_layer = inverter_layer_create(bounds);
-	layer_set_hidden(inverter_layer_get_layer(inverter_layer), !invert);
-	layer_add_child(window_layer, inverter_layer_get_layer(inverter_layer));
-
 	// Configure time on init
 	time_t raw_time;
 
@@ -559,7 +564,7 @@ static void window_unload(Window *window)
 	app_sync_deinit(&sync);
 
 	// Free layers
-	inverter_layer_destroy(inverter_layer);
+	//inverter_layer_destroy(inverter_layer);
 	for (int i = 0; i < NUM_LINES; i++)
 	{
 		destroy_line(&lines[i]);
@@ -584,8 +589,16 @@ static void handle_init() {
 		APP_LOG(APP_LOG_LEVEL_DEBUG, "Read language from store: %u", lang);
 	}
 
+  if(invert) {
+        textColor = GColorBlack;
+        backgroundColor = GColorWhite;
+      } else {
+        textColor = GColorWhite;
+        backgroundColor = GColorBlack;
+      }
+  
 	window = window_create();
-	window_set_background_color(window, GColorBlack);
+	window_set_background_color(window, backgroundColor);
 	window_set_window_handlers(window, (WindowHandlers) {
 		.load = window_load,
 		.unload = window_unload

@@ -35,13 +35,13 @@ function readyCallback(event) {
 function showConfiguration(event) {
   onReady(function() {
     var opts = getOptions();
-    var url  = "http://wificonnector.helff.net/config.html";
-    Pebble.openURL(url + "#v=" + encodeURIComponent(VERSION) + "&options=" + encodeURIComponent(opts));
+    var url  = "http://mhelff.github.io/Fuzzy-Text-International/resources/configure-fuzzy-text.html";
+    Pebble.openURL(url + "?v=" + encodeURIComponent(VERSION) + "&options=" + encodeURIComponent(opts));
   });
 }
 
 function webviewclosed(event) {
-  var resp = event.response;
+  var resp = decodeURIComponent(event.response);
   console.log('configuration response: '+ resp + ' ('+ typeof resp +')');
 
   var options = JSON.parse(resp);
